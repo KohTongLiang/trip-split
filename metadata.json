@@ -1,0 +1,5 @@
+{
+  "name": "TripSplit - Bill Splitting",
+  "description": "A bill splitting application in the style of Splitwise to manage shared expenses for a group trip. It supports multiple currencies and calculates who owes whom to simplify settlements.",
+  "requestFramePermissions": []
+}
