@@ -1,5 +1,5 @@
 
-import { Group, Expense, Currency } from '../types';
+import { type Group, type Expense, Currency } from '../types';
 
 const MEMBERS = ['Tongliang', 'Weiren', 'Chris', 'David'];
 

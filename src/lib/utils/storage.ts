@@ -1,4 +1,4 @@
-﻿import { Group } from '../types';
+﻿import type { Group } from '../types';
 
 const GROUPS_KEY = 'tripsplit.groups.v1';
 const SELECTED_GROUP_KEY = 'tripsplit.selectedGroupId.v1';
