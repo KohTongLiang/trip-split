@@ -11,6 +11,7 @@ export interface Expense {
   currency: Currency;
   paidBy: string; // Member name
   splitAmong: string[]; // Member names that share this expense
+  exchangeRate?: number; // Snapshot of exchange rate at time of expense
 }
 
 export interface Settlement {

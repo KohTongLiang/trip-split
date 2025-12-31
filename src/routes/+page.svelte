@@ -1,5 +1,8 @@
 <script lang="ts">
+    export let data: import("./$types").PageData;
+
     import { onMount } from "svelte";
+    import { invalidateAll } from "$app/navigation";
     import { GROUPS } from "$lib/data/seed";
     import {
         loadGroups,
@@ -22,14 +25,36 @@
     let selectedGroupId: string = "";
     let jpyToSgdRate = 115.0;
 
+    $: source = data.source;
+
     // Initialization
     onMount(() => {
-        groups = loadGroups() ?? GROUPS;
-        selectedGroupId = loadSelectedGroupId() ?? groups[0]?.id ?? "";
+        if (source === "db") {
+            groups = data.groups;
+        } else {
+            groups = loadGroups() ?? GROUPS;
+        }
+        // Restore selected group selection if possible, else default
+        const savedId = loadSelectedGroupId();
+        selectedGroupId =
+            (groups.find((g) => g.id === savedId) ? savedId : groups[0]?.id) ??
+            "";
     });
 
-    // Persistence
-    $: if (groups.length > 0) saveGroups(groups);
+    // React to data changes (e.g. after server action invalidation)
+    $: if (source === "db") {
+        groups = data.groups;
+        // Keep selectedGroupId if valid, else reset
+        if (
+            !groups.find((g) => g.id === selectedGroupId) &&
+            groups.length > 0
+        ) {
+            selectedGroupId = groups[0].id;
+        }
+    }
+
+    // Persistence (Local Only)
+    $: if (source === "local" && groups.length > 0) saveGroups(groups);
     $: if (selectedGroupId) saveSelectedGroupId(selectedGroupId);
 
     // Derived State
@@ -48,60 +73,89 @@
         groups = groups.map((g) => (g.id === updated.id ? updated : g));
     };
 
-    const createGroup = (name: string, members: string[]) => {
-        const id = `grp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const createGroup = async (name: string, members: string[]) => {
         const cleanMembers = Array.from(
             new Set(members.map((m) => m.trim()).filter(Boolean)),
         );
         const finalMembers = cleanMembers.length > 0 ? cleanMembers : ["Me"];
-        const newGroup: Group = {
-            id,
-            name,
-            members: finalMembers,
-            expenses: [],
-        };
-        groups = [...groups, newGroup];
-        selectedGroupId = id;
-    };
 
-    const deleteGroup = (id: string) => {
-        groups = groups.filter((g) => g.id !== id);
-        if (selectedGroupId === id) {
-            const next = groups.find((g) => g.id !== id)?.id ?? "";
-            selectedGroupId = next;
+        if (source === "db") {
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("members", finalMembers.join(","));
+            await fetch("?/createGroup", { method: "POST", body: formData });
+            await invalidateAll();
+        } else {
+            const id = `grp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+            const newGroup: Group = {
+                id,
+                name,
+                members: finalMembers,
+                expenses: [],
+            };
+            groups = [...groups, newGroup];
+            selectedGroupId = id;
         }
     };
 
-    const addExpense = (exp: Omit<Expense, "id">) => {
+    const deleteGroup = async (id: string) => {
+        if (source === "db") {
+            const formData = new FormData();
+            formData.append("groupId", id);
+            await fetch("?/deleteGroup", { method: "POST", body: formData });
+            await invalidateAll();
+        } else {
+            groups = groups.filter((g) => g.id !== id);
+            if (selectedGroupId === id) {
+                const next = groups.find((g) => g.id !== id)?.id ?? "";
+                selectedGroupId = next;
+            }
+        }
+    };
+
+    const addExpense = async (exp: Omit<Expense, "id">) => {
         if (!selectedGroup) return;
 
         const members = selectedGroup.members || [];
         let normalized: Omit<Expense, "id"> = exp;
 
+        // Baking in the exchange rate
+        if (normalized.currency === "JPY") {
+            normalized.exchangeRate = jpyToSgdRate;
+        }
+
         if (members.length === 1) {
             const only = members[0];
-            normalized = { ...exp, paidBy: only, splitAmong: [only] };
+            normalized = { ...normalized, paidBy: only, splitAmong: [only] };
         } else {
-            const validSplit = (exp.splitAmong || []).filter((n) =>
+            const validSplit = (normalized.splitAmong || []).filter((n) =>
                 members.includes(n),
             );
-            const paidBy = members.includes(exp.paidBy)
-                ? exp.paidBy
-                : (members[0] ?? exp.paidBy);
+            const paidBy = members.includes(normalized.paidBy)
+                ? normalized.paidBy
+                : (members[0] ?? normalized.paidBy);
             normalized = {
-                ...exp,
+                ...normalized,
                 paidBy,
                 splitAmong: validSplit.length > 0 ? validSplit : members,
             };
         }
 
-        const id = `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-        const newExpense: Expense = { id, ...normalized };
-        const updated: Group = {
-            ...selectedGroup,
-            expenses: [newExpense, ...selectedGroup.expenses],
-        };
-        updateGroup(updated);
+        if (source === "db") {
+            const formData = new FormData();
+            formData.append("groupId", selectedGroupId);
+            formData.append("expense", JSON.stringify(normalized));
+            await fetch("?/addExpense", { method: "POST", body: formData });
+            await invalidateAll();
+        } else {
+            const id = `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+            const newExpense: Expense = { id, ...normalized };
+            const updated: Group = {
+                ...selectedGroup,
+                expenses: [newExpense, ...selectedGroup.expenses],
+            };
+            updateGroup(updated);
+        }
     };
 
     const onSelectGroup = (id: string) => {

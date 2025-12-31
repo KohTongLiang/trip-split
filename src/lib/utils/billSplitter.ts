@@ -10,9 +10,10 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
         };
     }
 
-    const convertToSgd = (amount: number, currency: Currency): number => {
+    const convertToSgd = (amount: number, currency: Currency, exchangeRate?: number): number => {
         if (currency === Currency.JPY) {
-            return amount / jpyToSgdRate;
+            const rate = exchangeRate || jpyToSgdRate;
+            return amount / rate;
         }
         return amount;
     };
@@ -27,7 +28,7 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
     let totalSpentInSgd = 0;
 
     expenses.forEach(expense => {
-        const amountInSgd = convertToSgd(expense.amount, expense.currency);
+        const amountInSgd = convertToSgd(expense.amount, expense.currency, expense.exchangeRate);
         totalSpentInSgd += amountInSgd;
 
         // Paid amount

@@ -26,18 +26,30 @@
  * ```
  */
 declare module '$env/static/private' {
+	export const VITE_FIREBASE_API_KEY: string;
+	export const VITE_FIREBASE_AUTH_DOMAIN: string;
+	export const VITE_FIREBASE_PROJECT_ID: string;
+	export const VITE_FIREBASE_STORAGE_BUCKET: string;
+	export const VITE_FIREBASE_MESSAGING_SENDER_ID: string;
+	export const VITE_FIREBASE_APP_ID: string;
+	export const VITE_FIREBASE_MEASUREMENT_ID: string;
 	export const GEMINI_API_KEY: string;
 	export const ALLUSERSPROFILE: string;
 	export const ANTIGRAVITY_CLI_ALIAS: string;
 	export const APPDATA: string;
 	export const CARGO_TARGET_DIR: string;
+	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLORTERM: string;
 	export const CommonProgramFiles: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
 	export const ComSpec: string;
 	export const DriverData: string;
-	export const EFC_12612_1592913036: string;
+	export const EFC_63056_1262719628: string;
+	export const EFC_63056_1592913036: string;
+	export const EFC_63056_2283032206: string;
+	export const EFC_63056_2775293581: string;
+	export const EFC_63056_3789132940: string;
 	export const FACEPUNCH_ENGINE: string;
 	export const FPS_BROWSER_APP_PROFILE_STRING: string;
 	export const FPS_BROWSER_USER_PROFILE_STRING: string;
@@ -70,6 +82,8 @@ declare module '$env/static/private' {
 	export const npm_lifecycle_event: string;
 	export const npm_lifecycle_script: string;
 	export const npm_node_execpath: string;
+	export const npm_package_dependencies_firebase: string;
+	export const npm_package_dependencies_firebase_admin: string;
 	export const npm_package_description: string;
 	export const npm_package_devDependencies_svelte: string;
 	export const npm_package_devDependencies_svelte_check: string;
@@ -156,18 +170,30 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
+		VITE_FIREBASE_API_KEY: string;
+		VITE_FIREBASE_AUTH_DOMAIN: string;
+		VITE_FIREBASE_PROJECT_ID: string;
+		VITE_FIREBASE_STORAGE_BUCKET: string;
+		VITE_FIREBASE_MESSAGING_SENDER_ID: string;
+		VITE_FIREBASE_APP_ID: string;
+		VITE_FIREBASE_MEASUREMENT_ID: string;
 		GEMINI_API_KEY: string;
 		ALLUSERSPROFILE: string;
 		ANTIGRAVITY_CLI_ALIAS: string;
 		APPDATA: string;
 		CARGO_TARGET_DIR: string;
+		CHROME_CRASHPAD_PIPE_NAME: string;
 		COLORTERM: string;
 		CommonProgramFiles: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
 		ComSpec: string;
 		DriverData: string;
-		EFC_12612_1592913036: string;
+		EFC_63056_1262719628: string;
+		EFC_63056_1592913036: string;
+		EFC_63056_2283032206: string;
+		EFC_63056_2775293581: string;
+		EFC_63056_3789132940: string;
 		FACEPUNCH_ENGINE: string;
 		FPS_BROWSER_APP_PROFILE_STRING: string;
 		FPS_BROWSER_USER_PROFILE_STRING: string;
@@ -200,6 +226,8 @@ declare module '$env/dynamic/private' {
 		npm_lifecycle_event: string;
 		npm_lifecycle_script: string;
 		npm_node_execpath: string;
+		npm_package_dependencies_firebase: string;
+		npm_package_dependencies_firebase_admin: string;
 		npm_package_description: string;
 		npm_package_devDependencies_svelte: string;
 		npm_package_devDependencies_svelte_check: string;
