@@ -1,5 +1,6 @@
 
 import React from 'react';
+import AuthButton from './AuthButton';
 
 interface HeaderProps {
   totalSpent: number;
@@ -13,11 +14,14 @@ const Header: React.FC<HeaderProps> = ({ totalSpent }) => {
           <h1 className="text-3xl font-bold text-slate-800">TripSplit</h1>
           <p className="text-slate-500">Your trip's expense summary</p>
         </div>
-        <div className="text-right">
-          <p className="text-slate-500 text-sm">Total Trip Cost</p>
-          <p className="text-3xl font-bold text-sky-600">
-            {totalSpent.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}
-          </p>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-slate-500 text-sm">Total Trip Cost</p>
+            <p className="text-3xl font-bold text-sky-600">
+              {totalSpent.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}
+            </p>
+          </div>
+          <AuthButton />
         </div>
       </div>
     </header>
