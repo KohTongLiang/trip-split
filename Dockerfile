@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY package.json package-lock.json* ./
+RUN npm install
 
 # Copy Prisma schema and generate client
 COPY prisma ./prisma
@@ -15,16 +15,18 @@ RUN npx prisma generate
 COPY . .
 
 # Build the SvelteKit application
-RUN yarn build
+ENV PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=placeholder
+RUN npx svelte-kit sync && npm run build
 
 # Stage 2: Runtime
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install only production dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --production --frozen-lockfile
+# Copy package files and install only production dependencies
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev
 
 # Copy built application and Prisma files
 COPY --from=builder /app/build ./build
@@ -32,9 +34,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Expose the port Cloud Run will use
-ENV PORT=8080
-EXPOSE 8080
+# Expose the port
+EXPOSE 3000
+
+ENV HOST=0.0.0.0
 
 # Start the application
-CMD ["node", "build"]
+CMD ["node", "build/index.js"]

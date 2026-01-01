@@ -25,8 +25,8 @@ dist-ssr
 
 # SvelteKit
 .svelte-kit
+.svelte-kit/*
 build
-.env
 .env
 !.env.example
 vite.config.js.timestamp-*

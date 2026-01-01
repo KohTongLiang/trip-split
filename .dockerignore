@@ -3,5 +3,3 @@ build
 .git
 .env
 .svelte-kit
-yarn.lock
-package-lock.json
