@@ -14,14 +14,14 @@
     import type { Group, Expense } from "$lib/types";
 
     import Header from "$lib/components/Header.svelte";
+    import AuthForm from "$lib/components/AuthForm.svelte";
     import SummaryCard from "$lib/components/SummaryCard.svelte";
     import ExpenseList from "$lib/components/ExpenseList.svelte";
     import CurrencyConverter from "$lib/components/CurrencyConverter.svelte";
     import GroupManager from "$lib/components/GroupManager.svelte";
     import ExpenseForm from "$lib/components/ExpenseForm.svelte";
 
-    // State
-    let groups: Group[] = [];
+    $: groups = data.groups || [];
     let selectedGroupId: string = "";
     let jpyToSgdRate = 115.0;
 
@@ -29,11 +29,6 @@
 
     // Initialization
     onMount(() => {
-        if (source === "db") {
-            groups = data.groups;
-        } else {
-            groups = loadGroups() ?? GROUPS;
-        }
         // Restore selected group selection if possible, else default
         const savedId = loadSelectedGroupId();
         selectedGroupId =
@@ -43,7 +38,6 @@
 
     // React to data changes (e.g. after server action invalidation)
     $: if (source === "db") {
-        groups = data.groups;
         // Keep selectedGroupId if valid, else reset
         if (
             !groups.find((g) => g.id === selectedGroupId) &&
@@ -66,6 +60,8 @@
     // Calculations
     $: splits = calculateSplits(members, groupExpenses, jpyToSgdRate);
     $: totalSpent = splits.totalSpent;
+    $: totalExpense = splits.totalExpense;
+    $: totalIncome = splits.totalIncome;
     $: settlements = splits.settlements;
 
     // Actions
@@ -165,7 +161,7 @@
 
 <div class="min-h-screen bg-slate-100 text-slate-800">
     <main class="max-w-7xl mx-auto p-4 md:p-8">
-        <Header {totalSpent} />
+        <Header {totalSpent} {totalExpense} {totalIncome} />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 space-y-8">
@@ -173,6 +169,7 @@
                 <GroupManager
                     {groups}
                     {selectedGroupId}
+                    {source}
                     onSelect={onSelectGroup}
                     onCreate={createGroup}
                     onUpdate={updateGroup}
@@ -182,8 +179,16 @@
             </div>
 
             <div class="lg:col-span-2 space-y-6">
-                <ExpenseForm {members} onAdd={addExpense} />
-                <ExpenseList expenses={groupExpenses} {members} />
+                {#if source === "db" || data.user}
+                    <ExpenseForm {members} onAdd={addExpense} />
+                    <ExpenseList expenses={groupExpenses} {members} />
+                {:else}
+                    <AuthForm />
+                    <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-blue-800">
+                        <h3 class="font-bold mb-2">Cloud Sync</h3>
+                        <p class="text-sm">Sign in to save your trips to the database and access them from anywhere.</p>
+                    </div>
+                {/if}
             </div>
         </div>
     </main>

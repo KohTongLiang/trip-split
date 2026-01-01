@@ -4,11 +4,14 @@ export enum Currency {
   SGD = 'SGD',
 }
 
+export type TransactionType = 'expense' | 'income';
+
 export interface Expense {
   id: string;
   description: string;
   amount: number;
   currency: Currency;
+  type: TransactionType;
   paidBy: string; // Member name
   splitAmong: string[]; // Member names that share this expense
   exchangeRate?: number; // Snapshot of exchange rate at time of expense

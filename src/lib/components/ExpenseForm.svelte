@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Currency, type Expense } from "$lib/types";
+    import { Currency, type Expense, type TransactionType } from "$lib/types";
 
     export let members: string[];
     export let onAdd: (expense: Omit<Expense, "id">) => void;
@@ -7,6 +7,7 @@
     let description = "";
     let amount = "";
     let currency = Currency.JPY;
+    let type: TransactionType = 'expense';
     let paidBy = "";
     let splitAmong: string[] = [];
 
@@ -56,6 +57,7 @@
         description = "";
         amount = "";
         currency = Currency.JPY;
+        type = 'expense';
         paidBy = members[0] ?? "";
         splitAmong = isSingleMember
             ? members[0]
@@ -76,6 +78,7 @@
             description: description.trim(),
             amount: amt,
             currency,
+            type,
             paidBy,
             splitAmong: validSplit,
         });
@@ -84,8 +87,24 @@
 </script>
 
 <div class="bg-white p-6 rounded-xl shadow-md">
-    <h3 class="text-lg font-semibold text-slate-700 mb-4">Add Expense</h3>
+    <h3 class="text-lg font-semibold text-slate-700 mb-4">Add Transaction</h3>
     <form on:submit|preventDefault={submit} class="space-y-4">
+        <div class="flex p-1 bg-slate-100 rounded-lg mb-4">
+            <button
+                type="button"
+                class={`flex-1 py-2 text-sm font-medium rounded-md transition ${type === 'expense' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                on:click={() => type = 'expense'}
+            >
+                Expense
+            </button>
+            <button
+                type="button"
+                class={`flex-1 py-2 text-sm font-medium rounded-md transition ${type === 'income' ? 'bg-white shadow text-green-600' : 'text-slate-500 hover:text-slate-700'}`}
+                on:click={() => type = 'income'}
+            >
+                Income
+            </button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label
@@ -193,9 +212,10 @@
         <div class="flex justify-end">
             <button
                 type="submit"
-                class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded"
-                >Add Expense</button
+                class={`px-6 py-2 rounded font-bold text-white transition ${type === 'income' ? 'bg-green-600 hover:bg-green-700' : 'bg-sky-600 hover:bg-sky-700'}`}
             >
+                Add {type === 'income' ? 'Income' : 'Expense'}
+            </button>
         </div>
     </form>
 </div>

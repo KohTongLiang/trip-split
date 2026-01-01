@@ -4,6 +4,8 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
     if (members.length === 0) {
         return {
             totalSpent: 0,
+            totalExpense: 0,
+            totalIncome: 0,
             balances: [],
             settlements: [],
             totalSpentByPerson: new Map<string, number>(),
@@ -25,15 +27,24 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
         owedByPerson.set(name, 0);
     });
 
-    let totalSpentInSgd = 0;
+    let totalExpenseInSgd = 0;
+    let totalIncomeInSgd = 0;
 
     expenses.forEach(expense => {
         const amountInSgd = convertToSgd(expense.amount, expense.currency, expense.exchangeRate);
-        totalSpentInSgd += amountInSgd;
+        const isIncome = expense.type === 'income';
+
+        if (isIncome) {
+            totalIncomeInSgd += amountInSgd;
+        } else {
+            totalExpenseInSgd += amountInSgd;
+        }
+
+        const multiplier = isIncome ? -1 : 1;
 
         // Paid amount
         const currentPaid = totalSpentByPerson.get(expense.paidBy) || 0;
-        totalSpentByPerson.set(expense.paidBy, currentPaid + amountInSgd);
+        totalSpentByPerson.set(expense.paidBy, currentPaid + (amountInSgd * multiplier));
 
         // Owed share among participants (supports single person or subset)
         const participants = expense.splitAmong && expense.splitAmong.length > 0
@@ -42,7 +53,7 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
         const share = amountInSgd / participants.length;
         participants.forEach(pid => {
             const cur = owedByPerson.get(pid) || 0;
-            owedByPerson.set(pid, cur + share);
+            owedByPerson.set(pid, cur + (share * multiplier));
         });
     });
 
@@ -89,7 +100,9 @@ export const calculateSplits = (members: string[], expenses: Expense[], jpyToSgd
     }
 
     return {
-        totalSpent: totalSpentInSgd,
+        totalSpent: totalExpenseInSgd - totalIncomeInSgd,
+        totalExpense: totalExpenseInSgd,
+        totalIncome: totalIncomeInSgd,
         balances: initialBalances,
         settlements,
         totalSpentByPerson,

@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
-import { auth } from "../firebase";
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, type User } from "firebase/auth";
+import { supabase } from "../supabase";
+import type { User } from "@supabase/supabase-js";
 
 interface AuthState {
     user: User | null;
@@ -28,25 +28,27 @@ export const authStore = createAuthStore();
 
 // Initialize listener
 if (typeof window !== "undefined") {
-    onAuthStateChanged(auth, async (user) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user ?? null;
         authStore.setUser(user);
-        if (user) {
-            // Get ID token and set it as a cookie for server-side auth
-            const token = await user.getIdToken();
-            // Use Lax and remove Secure for localhost dev if needed, typically Secure works on localhost but let's be safe
-            document.cookie = `token=${token}; path=/; max-age=3600; samesite=lax`;
-        } else {
-            // Clear cookie
-            document.cookie = `token=; path=/; max-age=0; samesite=lax`;
-        }
     });
 }
 
-export const loginWithGoogle = async () => {
+export const login = async (email: string, password: string) => {
     authStore.loading();
     try {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+    } catch (error: any) {
+        authStore.setError(error.message);
+    }
+};
+
+export const signUp = async (email: string, password: string) => {
+    authStore.loading();
+    try {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
     } catch (error: any) {
         authStore.setError(error.message);
     }
@@ -55,7 +57,7 @@ export const loginWithGoogle = async () => {
 export const logout = async () => {
     authStore.loading();
     try {
-        await signOut(auth);
+        await supabase.auth.signOut();
     } catch (error: any) {
         authStore.setError(error.message);
     }

@@ -1,86 +1,109 @@
-import { db } from "../firebase.server";
+import { supabase } from "../supabase";
 import type { Group, Expense } from "../types";
-
-const GROUPS_COL = "groups";
 
 export const TripService = {
     async getGroups(uid: string): Promise<Group[]> {
-        // For simplicity, we assume users can see groups they are members of.
-        // However, since group members are just strings (names) in the current model, not UIDs,
-        // we might need a mapping or just fetch all groups user created.
-        // For this iteration, let's fetch groups where the 'ownerId' matches or something similar.
-        // Given the simple model 'members: string[]', implementing robust query is hard without changing model.
-        // Let's assume we store 'ownerId' or list of 'memberUids' in Group.
-        // I'll update the Group type locally here or assume 'ownerId' is present for querying.
+        const { data: groupsData, error: groupsError } = await supabase
+            .from('groups')
+            .select(`
+                id,
+                name,
+                members,
+                expenses (*)
+            `)
+            .eq('owner_id', uid)
+            .order('created_at', { ascending: false });
 
-        // Let's query by a new field 'ownerId' which we will add when creating groups.
-        const snapshot = await db.collection(GROUPS_COL).where("ownerId", "==", uid).get();
-        const groups: Group[] = [];
+        if (groupsError) throw groupsError;
 
-        for (const doc of snapshot.docs) {
-            const data = doc.data();
-            // Fetch subcollection expenses
-            const expensesSnap = await doc.ref.collection("expenses").orderBy("createdAt", "desc").get();
-            const expenses = expensesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Expense));
-
-            groups.push({
-                id: doc.id,
-                name: data.name,
-                members: data.members,
-                expenses,
-                // ...data
-            });
-        }
-        return groups;
+        return groupsData.map(g => ({
+            id: g.id,
+            name: g.name,
+            members: g.members,
+            expenses: (g.expenses || []).map((e: any) => ({
+                id: e.id,
+                description: e.description,
+                amount: e.amount,
+                currency: e.currency,
+                type: e.type || 'expense',
+                paidBy: e.paid_by,
+                splitAmong: e.split_among,
+                exchangeRate: e.exchange_rate
+            })).sort((a: any, b: any) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )
+        }));
     },
 
     async createGroup(uid: string, name: string, members: string[]): Promise<Group> {
-        const docRef = db.collection(GROUPS_COL).doc();
-        const groupData = {
-            name,
-            members,
-            ownerId: uid,
-            createdAt: new Date(),
-        };
-        await docRef.set(groupData);
+        const { data, error } = await supabase
+            .from('groups')
+            .insert({
+                name,
+                members,
+                owner_id: uid
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
         return {
-            id: docRef.id,
-            name,
-            members,
+            id: data.id,
+            name: data.name,
+            members: data.members,
             expenses: []
-        }
+        };
     },
 
     async deleteGroup(uid: string, groupId: string) {
-        // Check ownership
-        const docRef = db.collection(GROUPS_COL).doc(groupId);
-        const doc = await docRef.get();
-        if (!doc.exists || doc.data()?.ownerId !== uid) {
-            throw new Error("Not authorized or group not found");
-        }
-        // Recursive delete is hard in firestore without cloud functions, but we can delete doc
-        // Expenses will be orphaned but let's just delete the group doc for now.
-        await db.recursiveDelete(docRef);
+        const { error } = await supabase
+            .from('groups')
+            .delete()
+            .eq('id', groupId)
+            .eq('owner_id', uid);
+
+        if (error) throw error;
     },
 
     async addExpense(uid: string, groupId: string, expense: Omit<Expense, "id">): Promise<Expense> {
-        // Verify group access
-        const groupRef = db.collection(GROUPS_COL).doc(groupId);
-        const groupSnap = await groupRef.get();
-        if (!groupSnap.exists || groupSnap.data()?.ownerId !== uid) {
+        // First verify ownership of the group
+        const { data: group, error: groupError } = await supabase
+            .from('groups')
+            .select('owner_id')
+            .eq('id', groupId)
+            .single();
+        
+        if (groupError || group.owner_id !== uid) {
             throw new Error("Not authorized or group not found");
         }
 
-        const expenseRef = groupRef.collection("expenses").doc();
-        const newExpense = {
-            ...expense,
-            createdAt: new Date()
-        };
-        await expenseRef.set(newExpense);
+        const { data, error } = await supabase
+            .from('expenses')
+            .insert({
+                group_id: groupId,
+                description: expense.description,
+                amount: expense.amount,
+                currency: expense.currency,
+                type: expense.type,
+                paid_by: expense.paidBy,
+                split_among: expense.splitAmong,
+                exchange_rate: expense.exchangeRate
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
 
         return {
-            id: expenseRef.id,
-            ...expense
+            id: data.id,
+            description: data.description,
+            amount: data.amount,
+            currency: data.currency,
+            type: data.type,
+            paidBy: data.paid_by,
+            splitAmong: data.split_among,
+            exchangeRate: data.exchange_rate
         };
     }
 };

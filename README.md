@@ -35,6 +35,26 @@ The file system determines the URL. `src/routes/+page.svelte` maps to `/`. If we
 ### 3. Business Logic
 The core bill splitting logic was moved from a React Hook (`useBillSplitter`) to a pure function in `src/lib/utils/billSplitter.ts`. This makes it easier to test and reuse, as it decouples the logic from the UI framework.
 
+## Database Setup (Supabase + Prisma)
+
+This project uses **Prisma** as an ORM and **Supabase** (PostgreSQL) as the database.
+
+### 1. Configure Environment Variables
+Open the `.env` file and replace `[YOUR-PROJECT-ID]` and `[YOUR-PASSWORD]` with your actual Supabase project credentials.
+
+### 2. Run Database Migrations
+To create the necessary tables in your Supabase database, run:
+```bash
+npx prisma migrate dev --name init
+```
+This will automatically create the `groups` and `expenses` tables in your database.
+
+### 3. Generate Prisma Client
+If you make changes to `prisma/schema.prisma`, update the client by running:
+```bash
+npx prisma generate
+```
+
 ## Running the Project
 
 1. Install dependencies:

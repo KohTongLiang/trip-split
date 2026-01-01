@@ -1,74 +1,108 @@
 import type { Actions, PageServerLoad } from "./$types";
-import { app, db } from "$lib/firebase.server"; // Import auth from firebase-admin app? No, firebase-admin/auth
-import { getAuth } from "firebase-admin/auth";
+import { createSupabaseClient } from "$lib/supabase";
 import { TripService } from "$lib/services/tripService";
 import { fail } from "@sveltejs/kit";
 
-// Helper to verify token
-const verifyToken = async (cookies: any) => {
-    const token = cookies.get("token");
-    if (!token) {
-        console.log("VerifyToken: No token cookie found");
-        return null;
-    }
+export const load: PageServerLoad = async ({ locals: { supabase, getUser } }) => {
     try {
-        const decoded = await getAuth(app).verifyIdToken(token);
-        console.log("VerifyToken: Token verified for uid", decoded.uid);
-        return decoded;
-    } catch (e) {
-        console.error("VerifyToken: Validation failed", e);
-        return null;
-    }
-};
+        console.log("Load: Checking auth...");
+        const user = await getUser();
 
-export const load: PageServerLoad = async ({ cookies }) => {
-    console.log("Load: Checking auth...");
-    const user = await verifyToken(cookies);
+        if (user) {
+            console.log("Load: User authenticated, fetching from DB");
+            const { data: groups, error: groupsError } = await supabase
+                .from('groups')
+                .select(`
+                    id,
+                    name,
+                    members,
+                    expenses (*)
+                `)
+                .eq('owner_id', user.id)
+                .order('created_at', { ascending: false });
 
-    if (user) {
-        console.log("Load: User authenticated, fetching from DB");
-        const groups = await TripService.getGroups(user.uid);
+            if (groupsError) throw groupsError;
+
+            const formattedGroups = groups.map((g: any) => ({
+                id: g.id,
+                name: g.name,
+                members: g.members,
+                expenses: (g.expenses || []).map((e: any) => ({
+                    id: e.id,
+                    description: e.description,
+                    amount: e.amount,
+                    currency: e.currency,
+                    type: e.type || 'expense',
+                    paidBy: e.paid_by,
+                    splitAmong: e.split_among,
+                    exchangeRate: e.exchange_rate,
+                    created_at: e.created_at
+                })).sort((a: any, b: any) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )
+            }));
+
+            return {
+                groups: formattedGroups,
+                source: "db",
+                user: { uid: user.id, email: user.email }
+            };
+        }
+
+        console.log("Load: User not authenticated (or validation failed), using local source");
         return {
-            groups,
-            source: "db",
-            user: { uid: user.uid, email: user.email }
+            groups: [],
+            source: "local"
+        };
+    } catch (e: any) {
+        console.error("Load Error:", e);
+        return {
+            groups: [],
+            source: "local",
+            error: e.message || "Internal Server Error"
         };
     }
-
-    console.log("Load: User not authenticated (or validation failed), using local source");
-    return {
-        groups: [],
-        source: "local"
-    };
 };
 
 export const actions: Actions = {
-    createGroup: async ({ request, cookies }) => {
-        const user = await verifyToken(cookies);
+    createGroup: async ({ request, locals: { supabase, getUser } }) => {
+        const user = await getUser();
         if (!user) return fail(401, { error: "Unauthorized" });
 
         const formData = await request.formData();
         const name = formData.get("name")?.toString();
-
-        // Members parsing is tricky from a simple form if it's a list. 
-        // We'll assume the client sends a JSON string or we parse it differently.
-        // For now let's assume 'members' is a JSON string or comma separated.
         const membersRaw = formData.get("members")?.toString() || "";
         const members = membersRaw.split(',').map(m => m.trim()).filter(Boolean);
 
         if (!name) return fail(400, { error: "Name required" });
 
         try {
-            const group = await TripService.createGroup(user.uid, name, members);
-            return { success: true, group };
+            const { data: group, error } = await supabase
+                .from('groups')
+                .insert({
+                    name,
+                    members,
+                    owner_id: user.id
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            return { success: true, group: {
+                id: group.id,
+                name: group.name,
+                members: group.members,
+                expenses: []
+            } };
         } catch (e) {
             console.error(e);
             return fail(500, { error: "Failed to create group" });
         }
     },
 
-    deleteGroup: async ({ request, cookies }) => {
-        const user = await verifyToken(cookies);
+    deleteGroup: async ({ request, locals: { supabase, getUser } }) => {
+        const user = await getUser();
         if (!user) return fail(401, { error: "Unauthorized" });
 
         const formData = await request.formData();
@@ -77,15 +111,21 @@ export const actions: Actions = {
         if (!groupId) return fail(400, { error: "Group ID required" });
 
         try {
-            await TripService.deleteGroup(user.uid, groupId);
+            const { error } = await supabase
+                .from('groups')
+                .delete()
+                .eq('id', groupId)
+                .eq('owner_id', user.id);
+
+            if (error) throw error;
             return { success: true };
         } catch (e) {
             return fail(500, { error: "Failed to delete group " });
         }
     },
 
-    addExpense: async ({ request, cookies }) => {
-        const user = await verifyToken(cookies);
+    addExpense: async ({ request, locals: { supabase, getUser } }) => {
+        const user = await getUser();
         if (!user) {
             console.error("AddExpense: Unauthorized user");
             return fail(401, { error: "Unauthorized" });
@@ -102,12 +142,35 @@ export const actions: Actions = {
 
         try {
             const expense = JSON.parse(expenseJson);
-            // Ensure exchangeRate is passed safely
-            // Validations should be here
 
-            console.log(`AddExpense: Adding for User ${user.uid} to Group ${groupId}`);
-            await TripService.addExpense(user.uid, groupId, expense);
-            console.log("AddExpense: Success");
+            // Verify ownership
+            const { data: group, error: groupError } = await supabase
+                .from('groups')
+                .select('owner_id')
+                .eq('id', groupId)
+                .single();
+            
+            if (groupError || group.owner_id !== user.id) {
+                throw new Error("Not authorized or group not found");
+            }
+
+            const { data, error } = await supabase
+                .from('expenses')
+                .insert({
+                    group_id: groupId,
+                    description: expense.description,
+                    amount: expense.amount,
+                    currency: expense.currency,
+                    type: expense.type,
+                    paid_by: expense.paidBy,
+                    split_among: expense.splitAmong,
+                    exchange_rate: expense.exchangeRate
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
             return { success: true };
         } catch (e) {
             console.error("AddExpense Error:", e);

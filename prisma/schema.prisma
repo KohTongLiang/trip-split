@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Group {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  name       String
+  members    String[]
+  ownerId    String    @map("owner_id") @db.Uuid
+  expenses   Expense[]
+
+  @@map("groups")
+}
+
+model Expense {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  groupId      String   @map("group_id") @db.Uuid
+  description  String
+  amount       Decimal  @db.Decimal
+  currency     String
+  type         String   @default("expense")
+  paidBy       String   @map("paid_by")
+  splitAmong   String[] @map("split_among")
+  exchangeRate Decimal? @map("exchange_rate") @db.Decimal
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}

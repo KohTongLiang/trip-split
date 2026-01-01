@@ -9,6 +9,7 @@
     export let onCreate: (name: string, members: string[]) => void;
     export let onUpdate: (group: Group) => void;
     export let onDelete: (groupId: string) => void;
+    export let source: "db" | "local" = "local";
 
     let newName = "";
     let newMembersText = "";
@@ -81,19 +82,35 @@
 
     <div class="space-y-2 mb-6">
         {#each groups as g (g.id)}
-            <button
-                on:click={() => onSelect(g.id)}
-                class={`w-full text-left px-3 py-2 rounded border hover:bg-sky-50 ${g.id === selectedGroupId ? "bg-sky-50 border-sky-300" : "bg-slate-50 border-slate-200"}`}
-            >
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium text-slate-800">{g.name}</p>
-                        <p class="text-xs text-slate-500">
-                            {(g.members || []).join(", ")}
-                        </p>
+            {#if source === "db"}
+                <a
+                    href={`/groups/${g.id}`}
+                    class={`block w-full text-left px-3 py-2 rounded border hover:bg-sky-50 ${g.id === selectedGroupId ? "bg-sky-50 border-sky-300" : "bg-slate-50 border-slate-200"}`}
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-slate-800">{g.name}</p>
+                            <p class="text-xs text-slate-500">
+                                {(g.members || []).join(", ")}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </button>
+                </a>
+            {:else}
+                <button
+                    on:click={() => onSelect(g.id)}
+                    class={`w-full text-left px-3 py-2 rounded border hover:bg-sky-50 ${g.id === selectedGroupId ? "bg-sky-50 border-sky-300" : "bg-slate-50 border-slate-200"}`}
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-slate-800">{g.name}</p>
+                            <p class="text-xs text-slate-500">
+                                {(g.members || []).join(", ")}
+                            </p>
+                        </div>
+                    </div>
+                </button>
+            {/if}
         {/each}
     </div>
 

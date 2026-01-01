@@ -1,6 +1,8 @@
 <script lang="ts">
   export let totalSpent: number;
-  import { authStore, loginWithGoogle, logout } from "../stores/authStore";
+  export let totalExpense: number = 0;
+  export let totalIncome: number = 0;
+  import { authStore, logout } from "../stores/authStore";
 </script>
 
 <header class="bg-white shadow-md rounded-xl p-6 mb-8">
@@ -10,14 +12,34 @@
       <p class="text-slate-500">Your trip's expense summary</p>
     </div>
     <div class="flex items-center space-x-6">
-      <div class="text-right">
-        <p class="text-slate-500 text-sm">Total Trip Cost</p>
-        <p class="text-3xl font-bold text-sky-600">
-          {totalSpent.toLocaleString("en-SG", {
-            style: "currency",
-            currency: "SGD",
-          })}
-        </p>
+      <div class="flex gap-6">
+        <div class="text-right">
+          <p class="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Expense</p>
+          <p class="text-xl font-bold text-slate-700">
+            {totalExpense.toLocaleString("en-SG", {
+              style: "currency",
+              currency: "SGD",
+            })}
+          </p>
+        </div>
+        <div class="text-right">
+          <p class="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Income</p>
+          <p class="text-xl font-bold text-green-600">
+            {totalIncome.toLocaleString("en-SG", {
+              style: "currency",
+              currency: "SGD",
+            })}
+          </p>
+        </div>
+        <div class="text-right border-l pl-6">
+          <p class="text-slate-500 text-sm font-medium">Net Balance</p>
+          <p class="text-3xl font-bold text-sky-600">
+            {totalSpent.toLocaleString("en-SG", {
+              style: "currency",
+              currency: "SGD",
+            })}
+          </p>
+        </div>
       </div>
       <div>
         {#if $authStore.loading}
@@ -44,12 +66,7 @@
             </div>
           </div>
         {:else}
-          <button
-            class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition"
-            on:click={loginWithGoogle}
-          >
-            Login with Google
-          </button>
+          <div class="text-sm text-slate-500">Please sign in below</div>
         {/if}
       </div>
     </div>

@@ -64,19 +64,22 @@
                         <div>
                             <p class="font-medium text-slate-800">
                                 {expense.description}
+                                {#if expense.type === 'income'}
+                                    <span class="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Income</span>
+                                {/if}
                             </p>
                             <p class="text-sm text-slate-500">
-                                Paid by {expense.paidBy}
+                                {expense.type === 'income' ? 'Received by' : 'Paid by'} {expense.paidBy}
                             </p>
                             <p class="text-xs text-slate-400">
-                                Split among: {getParticipantsLabel(expense)}
+                                {expense.type === 'income' ? 'Shared among' : 'Split among'}: {getParticipantsLabel(expense)}
                             </p>
                         </div>
                     </div>
                     <p
-                        class="font-semibold text-slate-700 text-right min-w-[120px]"
+                        class={`font-semibold text-right min-w-[120px] ${expense.type === 'income' ? 'text-green-600' : 'text-slate-700'}`}
                     >
-                        {formatAmount(expense.amount, expense.currency)}
+                        {expense.type === 'income' ? '+' : ''}{formatAmount(expense.amount, expense.currency)}
                     </p>
                 </li>
             {/each}
