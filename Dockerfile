@@ -14,9 +14,10 @@ RUN npx prisma generate
 # Copy the rest of the application code
 COPY . .
 
+ENV PUBLIC_SUPABASE_URL="https://build-placeholder.com"
+ENV PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="build-placeholder-key"
+
 # Build the SvelteKit application
-ENV PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ENV PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=placeholder
 RUN npx svelte-kit sync && npm run build
 
 # Stage 2: Runtime

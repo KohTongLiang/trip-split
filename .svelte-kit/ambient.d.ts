@@ -40,7 +40,6 @@ declare module '$env/static/private' {
 	export const npm_node_execpath: string;
 	export const npm_config_init_version: string;
 	export const SHLVL: string;
-	export const WT_PROFILE_ID: string;
 	export const npm_package_dependencies__supabase_supabase_js: string;
 	export const HOME: string;
 	export const CONDA_SHLVL: string;
@@ -82,7 +81,6 @@ declare module '$env/static/private' {
 	export const NODE: string;
 	export const npm_package_devDependencies_prisma: string;
 	export const npm_package_name: string;
-	export const WT_SESSION: string;
 	export const XDG_RUNTIME_DIR: string;
 	export const DISPLAY: string;
 	export const LANG: string;
@@ -161,7 +159,6 @@ declare module '$env/dynamic/private' {
 		npm_node_execpath: string;
 		npm_config_init_version: string;
 		SHLVL: string;
-		WT_PROFILE_ID: string;
 		npm_package_dependencies__supabase_supabase_js: string;
 		HOME: string;
 		CONDA_SHLVL: string;
@@ -203,7 +200,6 @@ declare module '$env/dynamic/private' {
 		NODE: string;
 		npm_package_devDependencies_prisma: string;
 		npm_package_name: string;
-		WT_SESSION: string;
 		XDG_RUNTIME_DIR: string;
 		DISPLAY: string;
 		LANG: string;
